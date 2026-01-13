@@ -39,16 +39,6 @@ from agent_auth.config import get_agent_auth_system_prompt
 # Load environment variables
 load_dotenv()
 
-# Verify required environment variables
-assert os.environ.get("KERNEL_API_KEY"), (
-    "KERNEL_API_KEY environment variable is not set. "
-    "Get your key from https://onkernel.com"
-)
-assert os.environ.get("OPENAI_API_KEY"), (
-    "OPENAI_API_KEY environment variable is not set. "
-    "Get your key from https://platform.openai.com"
-)
-
 # WebJudge singleton
 _webjudge: WebJudge | None = None
 
