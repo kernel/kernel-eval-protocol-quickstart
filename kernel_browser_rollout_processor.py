@@ -210,8 +210,6 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
                     # For WebJudge evaluation (base64 encoded for JSON serialization)
                     "screenshots_b64": encode_screenshots(loop_result.screenshots),
                     "action_history": loop_result.action_history,
-                    # Model responses (raw LLM outputs)
-                    "model_responses": agent.state.responses,
                     # Task info (needed for Trajectory construction)
                     "task": task,
                     "task_id": task_id,
