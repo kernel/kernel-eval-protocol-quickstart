@@ -1,0 +1,29 @@
+[project]
+name = "kernel-eval-protocol"
+version = "0.1.0"
+description = "Evaluation protocol for Kernel browser agents"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # eval-protocol for evaluation framework
+    "eval-protocol",
+    "litellm",
+    # Dependencies for vendored core package (from kernel-tinker-rl)
+    "chz>=0.4.0",
+    "cuid2>=2.0.1",
+    "kernel>=0.23.0",
+    "matplotlib>=3.10.8",
+    "openai>=2.13.0",
+    "pillow>=12.0.0",
+    "python-dotenv>=1.2.1",
+    "raindrop-ai>=0.0.34",
+    "rich>=14.2.0",
+    "wandb>=0.23.0",
+    "websockets>=15.0.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0.0", "pytest-asyncio>=0.21.0", "ruff>=0.1.0"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
