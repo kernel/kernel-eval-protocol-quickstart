@@ -138,7 +138,7 @@ async def test_agent_auth_evaluation(row: EvaluationRow) -> EvaluationRow:
     # Get trajectory data
     screenshots_b64 = extra.get("screenshots_b64", [])
     
-    row.execution_metadata.extra["screenshots_b64"] = []  # TEMP FIX  # pyright: ignore[reportOptionalSubscript]
+    row.execution_metadata.extra["screenshots_b64"] = []  # TODO: TEMP FIX  # pyright: ignore[reportOptionalSubscript]
 
     action_history = extra.get("action_history", [])
     task = extra.get("task", "")
