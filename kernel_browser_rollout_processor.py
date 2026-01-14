@@ -96,8 +96,12 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
         self.system_prompt = system_prompt
         self.extra_actions = extra_actions or []
         self.base_url = base_url
-        self.api_key = os.environ.get("FIREWORKS_API_KEY")
         self._kernel: Kernel | None = None
+
+    @property
+    def api_key(self) -> str | None:
+        """Get API key at runtime (not init time) to support remote environments."""
+        return os.environ.get("FIREWORKS_API_KEY")
 
     def setup(self) -> None:
         """Initialize Kernel client."""
@@ -173,6 +177,7 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
+            print(f"Agent config: {agent_config}")
             agent = QwenAgent(config=agent_config)
 
             # Run the multi-turn agent loop
@@ -219,7 +224,6 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
                     "termination_reason": loop_result.termination_reason,
                     "terminal_action": loop_result.terminal_action,
                     "steps_completed": loop_result.steps_completed,
-                    "error": loop_result.error,
                     # Step-by-step details (for debugging)
                     "step_results": [
                         {
@@ -238,6 +242,7 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
 
             # Set rollout status
             if loop_result.error:
+                logger.error(f"Rollout error for {task_id}: {loop_result.error}")
                 row.rollout_status = Status.error(loop_result.error)
             else:
                 row.rollout_status = Status.rollout_finished()

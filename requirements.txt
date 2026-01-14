@@ -1,5 +1,5 @@
 # Evaluation framework
-eval-protocol
+eval-protocol>=0.3.11
 litellm
 
 # Dependencies for vendored core package (from kernel-tinker-rl)

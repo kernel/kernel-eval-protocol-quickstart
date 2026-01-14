@@ -100,7 +100,7 @@ def agent_auth_dataset_adapter(rows: List[Dict[str, Any]]) -> List[EvaluationRow
     passed_threshold=0.5,
     max_dataset_rows=4,
     num_runs=1,
-    max_concurrent_rollouts=4,
+    max_concurrent_rollouts=16,
     mode="pointwise",
 )
 async def test_agent_auth_evaluation(row: EvaluationRow) -> EvaluationRow:
@@ -128,7 +128,7 @@ async def test_agent_auth_evaluation(row: EvaluationRow) -> EvaluationRow:
     # Get trajectory data
     screenshots_b64 = extra.get("screenshots_b64", [])
     
-    row.execution_metadata.extra["screenshots_b64"] = []  # TODO: TEMP FIX  # pyright: ignore[reportOptionalSubscript]
+    row.execution_metadata.extra["screenshots_b64"] = []  # TODO: reduce size, preserved in row.messages # pyright: ignore[reportOptionalSubscript]
 
     action_history = extra.get("action_history", [])
     task = extra.get("task", "")
