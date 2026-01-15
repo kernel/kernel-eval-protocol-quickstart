@@ -145,6 +145,9 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
         # Get model from completion_params
         completion_params = config.completion_params or {}
         model = completion_params.get("model", "qwen/qwen3-vl-8b-instruct")
+        # Strip fireworks_ai/ prefix if present
+        if model.startswith("fireworks_ai/"):
+            model = model[len("fireworks_ai/"):]
         temperature = completion_params.get("temperature", 0.0)
         max_tokens = completion_params.get("max_tokens", 512)
 
@@ -177,7 +180,6 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
-            print(f"Agent config: {agent_config}")
             agent = QwenAgent(config=agent_config)
 
             # Run the multi-turn agent loop

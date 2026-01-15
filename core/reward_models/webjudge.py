@@ -18,12 +18,15 @@ from __future__ import annotations
 import asyncio
 import base64
 import io
+import logging
 import os
 import re
 from dataclasses import dataclass, field
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, APITimeoutError, RateLimitError, APIConnectionError
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 from .base import RewardModel, Trajectory
 
@@ -112,6 +115,7 @@ class WebJudge(RewardModel):
         self.client = AsyncOpenAI(
             api_key=api_key or os.getenv("OPENROUTER_API_KEY"),
             base_url=base_url,
+            timeout=600.0
         )
         self.model = model
         self.evaluation_criteria = evaluation_criteria
@@ -190,11 +194,24 @@ class WebJudge(RewardModel):
             {"role": "user", "content": f"Task: {task}"},
         ]
 
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            max_completion_tokens=512,
-        )
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                # max_completion_tokens=512,
+            )
+        except APITimeoutError as e:
+            logger.error(f"WebJudge key points identification timed out: {e}")
+            raise
+        except RateLimitError as e:
+            logger.error(f"WebJudge key points identification rate limited: {e}")
+            raise
+        except APIConnectionError as e:
+            logger.error(f"WebJudge key points identification connection error: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"WebJudge key points identification failed: {type(e).__name__}: {e}")
+            raise
 
         content = response.choices[0].message.content or ""
 
@@ -284,7 +301,7 @@ The snapshot of the web page is shown in the image."""
                         ],
                     },
                 ],
-                max_completion_tokens=512,
+                # max_completion_tokens=512,
             )
 
             content = response.choices[0].message.content or ""
@@ -300,7 +317,17 @@ The snapshot of the web page is shown in the image."""
 
             return {"score": score, "reasoning": reasoning}
 
+        except APITimeoutError as e:
+            logger.error(f"WebJudge screenshot scoring timed out: {e}")
+            return {"score": 0, "reasoning": f"Timeout: {e}"}
+        except RateLimitError as e:
+            logger.error(f"WebJudge screenshot scoring rate limited: {e}")
+            return {"score": 0, "reasoning": f"Rate limit: {e}"}
+        except APIConnectionError as e:
+            logger.error(f"WebJudge screenshot scoring connection error: {e}")
+            return {"score": 0, "reasoning": f"Connection error: {e}"}
         except Exception as e:
+            logger.error(f"WebJudge screenshot scoring failed: {type(e).__name__}: {e}")
             return {"score": 0, "reasoning": f"Error: {e}"}
 
     async def _judge_outcome(
@@ -376,14 +403,27 @@ Action History:
                 }
             )
 
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": content},
-            ],
-            max_completion_tokens=1024,
-        )
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": content},
+                ],
+                # max_completion_tokens=1024,
+            )
+        except APITimeoutError as e:
+            logger.error(f"WebJudge outcome judgment timed out: {e}")
+            raise
+        except RateLimitError as e:
+            logger.error(f"WebJudge outcome judgment rate limited: {e}")
+            raise
+        except APIConnectionError as e:
+            logger.error(f"WebJudge outcome judgment connection error: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"WebJudge outcome judgment failed: {type(e).__name__}: {e}")
+            raise
 
         result = response.choices[0].message.content or ""
 

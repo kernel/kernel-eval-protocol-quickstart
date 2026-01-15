@@ -101,6 +101,7 @@ def agent_auth_dataset_adapter(rows: List[Dict[str, Any]]) -> List[EvaluationRow
     max_dataset_rows=4,
     num_runs=1,
     max_concurrent_rollouts=16,
+    max_concurrent_evaluations=16,
     mode="pointwise",
 )
 async def test_agent_auth_evaluation(row: EvaluationRow) -> EvaluationRow:
