@@ -76,7 +76,7 @@ export FIREWORKS_API_KEY="your-fireworks-key"
 
 ```bash
 # Using Kernel CLI
-kernel pools create eval-browser-pool --size 8
+kernel pools create eval-browser-pool --size 20
 ```
 
 ## Usage
@@ -133,6 +133,14 @@ async def test_your_evaluation(row):
     
     row.evaluation_result = EvaluateResult(score=score, reason="...")
     return row
+```
+
+### Train with RFT
+
+Create a reinforcement fine-tuning job using evaluation results:
+
+```bash
+ep create rft --base-model accounts/fireworks/models/qwen3-vl-8b-instruct --chunk-size 50 --max-context-length 32768 --batch-size 32768 --epochs 4
 ```
 
 ## Project Structure
