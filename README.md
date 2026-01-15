@@ -63,13 +63,21 @@ The integration provides:
 git clone <this-repo> kernel-eval-protocol
 cd kernel-eval-protocol
 
-# Install dependencies with uv
-uv sync
+# Install dependencies
+pip install -r requirements.txt
 
-# Set environment variables
+# Set environment variables (or create a .env file)
 export KERNEL_API_KEY="your-kernel-key"
 export OPENAI_API_KEY="your-openai-key"
 export FIREWORKS_API_KEY="your-fireworks-key"
+```
+
+Create .env file
+
+```bash
+KERNEL_API_KEY=your-kernel-key
+OPENAI_API_KEY=your-openai-key
+FIREWORKS_API_KEY=your-fireworks-key
 ```
 
 ### Create Browser Pool
@@ -89,9 +97,6 @@ source .venv/bin/activate
 
 # Run evaluation
 pytest test_agent_auth.py -vs
-
-# With limited dataset size
-EP_MAX_ROWS=5 pytest test_agent_auth.py -vs
 ```
 
 ### Custom Evaluations
@@ -153,6 +158,8 @@ kernel-eval-protocol/
 │   ├── browser.py                 # Kernel browser adapter
 │   ├── actions.py                 # Action definitions (click, type, etc.)
 │   ├── prompts.py                 # System prompt builder
+│   ├── tracking.py                # Episode tracking utilities
+│   ├── utils.py                   # Helper utilities
 │   └── reward_models/
 │       ├── base.py                # Base reward model
 │       └── webjudge.py            # WebJudge LLM-as-Judge scorer
@@ -162,7 +169,8 @@ kernel-eval-protocol/
 ├── kernel_browser_rollout_processor.py  # Eval Protocol rollout processor
 ├── test_agent_auth.py             # Example evaluation test
 ├── tasks.jsonl                    # Agent Auth task dataset
-├── pyproject.toml                 # Package configuration
+├── requirements.txt               # Python dependencies
+├── pytest.ini                     # Pytest configuration
 └── README.md
 ```
 
