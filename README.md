@@ -54,7 +54,7 @@ The integration provides:
 1. **Kernel API Key**: Get from https://onkernel.com
 2. **OpenAI API Key**: Get from https://platform.openai.com (for WebJudge scoring)
 3. **Fireworks API Key**: Get from https://fireworks.ai (for VLM inference)
-4. **Browser Pool**: Create a Kernel browser pool named `eval-browser-pool`
+4. **Browser Pool**: Create a Kernel browser pool named `eval-browser-pool` with a long inactivity timeout (see below)
 
 ### Installation
 
@@ -82,10 +82,15 @@ FIREWORKS_API_KEY=your-fireworks-key
 
 ### Create Browser Pool
 
+Create a browser pool with a long inactivity timeout so browsers stay alive during VLM inference. Kernel only destroys browsers after `timeout_seconds` of inactivity (no CDP or live view connections).
+
 ```bash
-# Using Kernel CLI
-kernel pools create eval-browser-pool --size 20
+# Using Kernel CLI (recommended: timeout=900, size=20)
+kernel pools create eval-browser-pool --size 20 --timeout 900
 ```
+
+- **timeout_seconds: 900** (15 minutes) — Browsers are only destroyed after this much idle time; normal API calls (screenshots, clicks) count as activity.
+- **size: 20** — Matches typical concurrency for evaluation runs.
 
 ## Usage
 
