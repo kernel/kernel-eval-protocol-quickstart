@@ -44,6 +44,7 @@ load_dotenv()
 
 # WebJudge singleton
 _webjudge: WebJudge | None = None
+MAX_DATASET_ROWS = int(os.getenv("EP_MAX_ROWS", "4"))
 
 
 def get_webjudge(model: str = "gpt-5-mini") -> WebJudge:
@@ -102,7 +103,7 @@ def agent_auth_dataset_adapter(rows: List[Dict[str, Any]]) -> List[EvaluationRow
         extra_actions=AGENT_AUTH_ACTIONS,
     ),
     passed_threshold=0.5,
-    max_dataset_rows=4,
+    max_dataset_rows=MAX_DATASET_ROWS,
     num_runs=1,
     max_concurrent_rollouts=16,
     max_concurrent_evaluations=16,

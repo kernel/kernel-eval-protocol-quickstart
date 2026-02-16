@@ -39,7 +39,9 @@ Requires Python 3.10+.
    pytest test_agent_auth.py -vs
    ```
 
-   To run on fewer tasks (e.g. 5 rows): `EP_MAX_ROWS=5 pytest test_agent_auth.py -vs`
+   By default, the test runs 4 rows. Override with `EP_MAX_ROWS`:
+   - Fewer rows: `EP_MAX_ROWS=3 pytest test_agent_auth.py -vs`
+   - More rows: `EP_MAX_ROWS=20 pytest test_agent_auth.py -vs`
 
 ### View results in local UI
 
