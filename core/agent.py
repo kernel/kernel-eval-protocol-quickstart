@@ -27,11 +27,11 @@ from .actions import Action, parse_action_from_args, parse_action_from_response
 from .prompts import get_system_prompt
 from .utils import resize_image
 
-# Available Qwen VLM models
+# Available Qwen VLM models on Fireworks
 AVAILABLE_MODELS: list[str] = [
-    "qwen/qwen3-vl-8b-instruct",
-    "qwen/qwen3-vl-30b-a3b-instruct",
-    "qwen/qwen3-vl-235b-a22b-instruct",
+    "accounts/fireworks/models/qwen3-vl-8b-instruct",
+    "accounts/fireworks/models/qwen3-vl-30b-a3b-instruct",
+    "accounts/fireworks/models/qwen3-vl-235b-a22b-instruct",
 ]
 
 DEFAULT_MODEL: str = AVAILABLE_MODELS[0]
@@ -78,7 +78,7 @@ class QwenAgent:
     Uses normalized coordinates (0-999) for coordinate-independent actions.
 
     Usage:
-        agent = QwenAgent(AgentConfig(model="qwen/qwen3-vl-8b-instruct"))
+        agent = QwenAgent(AgentConfig(model="accounts/fireworks/models/qwen3-vl-8b-instruct"))
 
         while True:
             action = agent.predict(task, screenshot)

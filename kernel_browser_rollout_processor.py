@@ -144,7 +144,9 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
 
         # Get model from completion_params
         completion_params = config.completion_params or {}
-        model = completion_params.get("model", "qwen/qwen3-vl-8b-instruct")
+        model = completion_params.get(
+            "model", "accounts/fireworks/models/qwen3-vl-8b-instruct"
+        )
         # Strip fireworks_ai/ prefix if present
         if model.startswith("fireworks_ai/"):
             model = model[len("fireworks_ai/"):]
