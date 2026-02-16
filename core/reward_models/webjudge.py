@@ -89,31 +89,31 @@ class WebJudge(RewardModel):
     3. Outcome Judgment - final success/failure determination
 
     Usage:
-        webjudge = WebJudge(model="openai/gpt-5-mini")
+        webjudge = WebJudge(model="gpt-5-mini")
         result = await webjudge.evaluate(trajectory)
         print(f"Success: {result.success}, Score: {result.score}")
     """
 
     def __init__(
         self,
-        model: str = "openai/gpt-5-mini",
+        model: str = "gpt-5-mini",
         api_key: str | None = None,
-        base_url: str = "https://openrouter.ai/api/v1",
+        base_url: str = "https://api.openai.com/v1",
         evaluation_criteria: str | None = None,
     ):
         """
         Initialize WebJudge.
 
         Args:
-            model: Model name (OpenRouter format, e.g., "openai/gpt-5-mini")
-            api_key: API key for OpenRouter. Falls back to OPENROUTER_API_KEY env var.
-            base_url: API base URL. Defaults to OpenRouter.
+            model: Model name (for example, "gpt-5-mini")
+            api_key: API key for the configured provider. Falls back to OPENAI_API_KEY env var.
+            base_url: API base URL. Defaults to OpenAI.
             evaluation_criteria: Custom evaluation criteria for the judgment phase.
                 If None, uses DEFAULT_EVALUATION_CRITERIA (designed for e-commerce tasks).
                 Override this for different task types (e.g., authentication, navigation).
         """
         self.client = AsyncOpenAI(
-            api_key=api_key or os.getenv("OPENROUTER_API_KEY"),
+            api_key=api_key or os.getenv("OPENAI_API_KEY"),
             base_url=base_url,
             timeout=600.0
         )

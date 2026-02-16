@@ -321,7 +321,7 @@ def setup_environment(env_file: str | Path | None = None) -> None:
             return
 
     raise EnvironmentError(
-        ".env file not found. Create one with KERNEL_API_KEY, OPENROUTER_API_KEY, etc."
+        ".env file not found. Create one with KERNEL_API_KEY, FIREWORKS_API_KEY, OPENAI_API_KEY."
     )
 
 
