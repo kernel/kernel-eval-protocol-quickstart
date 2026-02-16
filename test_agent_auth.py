@@ -14,6 +14,7 @@ Usage:
 
 Environment Variables:
     KERNEL_API_KEY: Required for Kernel browser API
+    FIREWORKS_API_KEY: Required for VLM rollout inference
     OPENAI_API_KEY: Required for WebJudge (LLM judge)
 """
 
