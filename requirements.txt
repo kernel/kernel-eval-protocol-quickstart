@@ -2,7 +2,7 @@
 eval-protocol>=0.3.11
 litellm
 
-# Dependencies for vendored core package (from kernel-tinker-rl)
+# Core agent and browser dependencies
 chz>=0.4.0
 cuid2>=2.0.1
 kernel>=0.23.0

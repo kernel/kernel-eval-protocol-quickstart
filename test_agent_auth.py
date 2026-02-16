@@ -31,7 +31,6 @@ from kernel_browser_rollout_processor import (
     decode_screenshots,
 )
 
-# From kernel-tinker-rl (vendored packages)
 from core.reward_models.webjudge import Trajectory, WebJudge
 from agent_auth.actions import AGENT_AUTH_ACTIONS
 from agent_auth.config import get_agent_auth_system_prompt
