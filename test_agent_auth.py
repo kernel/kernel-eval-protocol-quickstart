@@ -33,7 +33,10 @@ from kernel_browser_rollout_processor import (
 
 from core.reward_models.webjudge import Trajectory, WebJudge
 from agent_auth.actions import AGENT_AUTH_ACTIONS
-from agent_auth.config import get_agent_auth_system_prompt
+from agent_auth.config import (
+    AGENT_AUTH_EVALUATION_CRITERIA,
+    get_agent_auth_system_prompt,
+)
 
 # Load environment variables
 load_dotenv()
@@ -50,6 +53,7 @@ def get_webjudge(model: str = "gpt-5-mini") -> WebJudge:
             model=model,
             api_key=os.environ.get("OPENAI_API_KEY"),
             base_url="https://api.openai.com/v1",
+            evaluation_criteria=AGENT_AUTH_EVALUATION_CRITERIA,
         )
     return _webjudge
 

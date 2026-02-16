@@ -14,6 +14,15 @@ from core import build_system_prompt
 
 from .actions import AGENT_AUTH_ACTIONS
 
+# Evaluation criteria for authentication/login discovery tasks.
+AGENT_AUTH_EVALUATION_CRITERIA = """1. The agent must have navigated to an authentication page (login, sign-up, register, create account).
+2. The agent must have identified input fields that are actually visible on the final page.
+3. Many sites use progressive disclosure (showing email first, then password on the next step) - this is valid and should be considered successful.
+4. The reported fields should match what is visible in the screenshots.
+5. Do not penalize for "missing" fields that would only appear in later steps of a multi-step auth flow.
+6. If the task asks for "first" input fields, only the initially visible fields need to be reported.
+7. The agent should not fill in or submit any forms - just identify the fields."""
+
 # System prompt for login discovery agents
 LOGIN_DISCOVERY_PROMPT = """Your task is to find the login page for a website and identify what input fields are required.
 
