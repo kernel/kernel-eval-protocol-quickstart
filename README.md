@@ -41,6 +41,19 @@ Requires Python 3.10+.
 
    To run on fewer tasks (e.g. 5 rows): `EP_MAX_ROWS=5 pytest test_agent_auth.py -vs`
 
+### View results in local UI
+
+Pytest prints links like `http://localhost:8000/pivot?...` and `http://localhost:8000/table?...`.
+Those links only work while the Eval Protocol local UI server is running.
+
+Start it in another terminal from the repo root:
+
+```bash
+.venv/bin/ep logs
+```
+
+Then open the links from pytest output.
+
 ## What Happens When You Run It
 
 Eval Protocol reads `tasks.jsonl` (hundreds of browser tasks). For each task:
