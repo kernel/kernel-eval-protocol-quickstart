@@ -84,7 +84,7 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
         pool_name: str = "eval-browser-pool",
         max_steps: int = 10,
         image_max_size: int = 512,
-        acquire_timeout_seconds: int = 60,
+        acquire_timeout_seconds: int = 120,
         system_prompt: str | None = None,
         extra_actions: list | None = None,
         base_url: str = "https://api.fireworks.ai/inference/v1",
@@ -163,9 +163,6 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
                 acquire_timeout_seconds=self.acquire_timeout_seconds,
             )
             adapter = KernelBrowserAdapter(self._kernel, browser, reset_on_init=True)
-
-            # Start heartbeat to keep browser alive during VLM inference
-            adapter.start_heartbeat_sync(task_label=f"{task_id}")
 
             # Navigate to initial URL
             initial_screenshot = adapter.navigate(initial_url)
@@ -276,7 +273,6 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
             # Release browser back to pool
             if adapter is not None:
                 try:
-                    adapter.stop_heartbeat_sync()
                     reuse = error is None and not adapter._should_not_reuse
                     self._kernel.browser_pools.release(
                         self.pool_name,

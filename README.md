@@ -1,19 +1,51 @@
 # Kernel Eval Protocol
 
-Eval Protocol integration for evaluating VLM browser agents using [Kernel](https://onkernel.com) browser pools.
+Eval Protocol integration for evaluating and fine-tuning VLM browser agents using [Kernel](https://onkernel.com) serverless browsers and [Fireworks](https://fireworks.ai) for VLM inference.
 
-This package provides standardized evaluation of browser-based VLM agents using the [Eval Protocol](https://evalprotocol.com) framework.
+## Quickstart
 
-## Overview
+1. **Clone and install**
 
-The integration provides:
+   ```bash
+   git clone <this-repo> kernel-eval-protocol-quickstart
+   cd kernel-eval-protocol-quickstart
+   python -m venv .venv
+   source .venv/bin/activate
+   uv pip install -r requirements.txt
+   ```
 
-- **`KernelBrowserRolloutProcessor`**: A custom rollout processor that runs multi-step browser episodes using Kernel browser pools
-- **`core/`**: Vendored agent code (QwenAgent, WebJudge, browser adapter) from [kernel-tinker-rl](https://github.com/onkernel/kernel-tinker-rl)
-- **`agent_auth/`**: Agent Auth benchmark configuration and custom actions
-- **`test_agent_auth.py`**: Example evaluation test for the Agent Auth benchmark
+2. **Set API keys**
 
-## How It Works
+   Copy `.env.example` to `.env` and fill in the three keys: **Kernel** (serverless browser), **Fireworks** (VLM inference), **OpenAI** (WebJudge scoring).
+
+   ```bash
+   cp .env.example .env
+   # Edit .env with your keys
+   ```
+
+3. **Create a browser pool**
+
+   Browsers must stay alive during VLM inference, so use a long inactivity timeout. The default concurrency uses up to 16 rollouts, so a pool of 20 is a good fit.
+
+   ```bash
+   kernel pools create eval-browser-pool --size 20 --timeout 900
+   ```
+
+4. **Run the evaluation**
+
+   ```bash
+   pytest test_agent_auth.py -vs
+   ```
+
+   To run on fewer tasks (e.g. 5 rows): `EP_MAX_ROWS=5 pytest test_agent_auth.py -vs`
+
+## What Happens When You Run It
+
+Eval Protocol reads `tasks.jsonl` (hundreds of browser tasks). For each task:
+
+- **KernelBrowserRolloutProcessor** acquires a browser from the pool, navigates to the task URL, runs the VLM agent loop (screenshot → predict → execute → repeat), captures the trajectory, then releases the browser.
+- The test function scores each trajectory with **WebJudge** (LLM-as-judge).
+- Results are reported by pytest / Eval Protocol.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -21,7 +53,6 @@ The integration provides:
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  @evaluation_test(...)                                    │  │
 │  │  async def test_agent_auth(row):                         │  │
-│  │      # Rollout already executed by processor              │  │
 │  │      trajectory = get_trajectory(row)                     │  │
 │  │      score = webjudge.evaluate(trajectory)               │  │
 │  └──────────────────────────────────────────────────────────┘  │
@@ -31,10 +62,8 @@ The integration provides:
 │  │  KernelBrowserRolloutProcessor                            │  │
 │  │    1. Acquire browser from Kernel pool                    │  │
 │  │    2. Navigate to initial URL                             │  │
-│  │    3. Run agent loop (QwenAgent)                          │  │
-│  │       - Screenshot → VLM predict → Execute → Repeat       │  │
-│  │    4. Capture trajectory (screenshots, actions, messages) │  │
-│  │    5. Release browser                                     │  │
+│  │    3. Run agent loop (screenshot → predict → execute)     │  │
+│  │    4. Capture trajectory, release browser                │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                              │
@@ -47,61 +76,29 @@ The integration provides:
               └─────────────────────────────┘
 ```
 
-## Setup
+## Training with RFT
 
-### Prerequisites
-
-1. **Kernel API Key**: Get from https://onkernel.com
-2. **OpenAI API Key**: Get from https://platform.openai.com (for WebJudge scoring)
-3. **Fireworks API Key**: Get from https://fireworks.ai (for VLM inference)
-4. **Browser Pool**: Create a Kernel browser pool named `eval-browser-pool`
-
-### Installation
+RFT produces a smaller model trained specifically on the browser-agent actions that work for your tasks, so you can run cheaper inference without losing task performance. Create a reinforcement fine-tuning job from evaluation results:
 
 ```bash
-# Clone this repo
-git clone <this-repo> kernel-eval-protocol
-cd kernel-eval-protocol
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Set environment variables (or create a .env file)
-export KERNEL_API_KEY="your-kernel-key"
-export OPENAI_API_KEY="your-openai-key"
-export FIREWORKS_API_KEY="your-fireworks-key"
+ep create rft --base-model accounts/fireworks/models/qwen3-vl-8b-instruct --chunk-size 50 --max-context-length 32768 --batch-size 32768 --epochs 4
 ```
 
-Create .env file
+### Using the RFT model
 
-```bash
-KERNEL_API_KEY=your-kernel-key
-OPENAI_API_KEY=your-openai-key
-FIREWORKS_API_KEY=your-fireworks-key
+After the RFT job completes, you get a new model ID (e.g. from Fireworks). To evaluate that model instead of the default, set it in `test_agent_auth.py` in the `@evaluation_test` decorator:
+
+```python
+completion_params=[
+    {"model": "accounts/fireworks/models/your-rft-model-id"},
+],
 ```
 
-### Create Browser Pool
+Then run the evaluation as usual: `pytest test_agent_auth.py -vs`.
 
-```bash
-# Using Kernel CLI
-kernel pools create eval-browser-pool --size 20
-```
+## Writing Custom Evaluations
 
-## Usage
-
-### Run Agent Auth Evaluation
-
-```bash
-# Activate venv
-source .venv/bin/activate
-
-# Run evaluation
-pytest test_agent_auth.py -vs
-```
-
-### Custom Evaluations
-
-Create your own evaluation test:
+Use `KernelBrowserRolloutProcessor` with your own dataset and scorer:
 
 ```python
 from eval_protocol.pytest import evaluation_test
@@ -125,133 +122,43 @@ from agent_auth.config import get_agent_auth_system_prompt
     completion_params=[{"model": "accounts/fireworks/models/qwen3-vl-30b-a3b-thinking"}],
 )
 async def test_your_evaluation(row):
-    # Trajectory data is in row.execution_metadata.extra
     extra = row.execution_metadata.extra
     screenshots = decode_screenshots(extra["screenshots_b64"])
     actions = extra["action_history"]
-    
-    # Message history (including tool_calls) is in row.messages
     messages = row.messages
-    
-    # Your evaluation logic here
     score = your_scorer(screenshots, actions)
-    
     row.evaluation_result = EvaluateResult(score=score, reason="...")
     return row
-```
-
-### Train with RFT
-
-Create a reinforcement fine-tuning job using evaluation results:
-
-```bash
-ep create rft --base-model accounts/fireworks/models/qwen3-vl-8b-instruct --chunk-size 50 --max-context-length 32768 --batch-size 32768 --epochs 4
 ```
 
 ## Project Structure
 
 ```
-kernel-eval-protocol/
-├── core/                          # Vendored from kernel-tinker-rl
-│   ├── agent.py                   # QwenAgent - VLM agent with message history
-│   ├── agent_loop.py              # Multi-step agent loop
-│   ├── browser.py                 # Kernel browser adapter
-│   ├── actions.py                 # Action definitions (click, type, etc.)
-│   ├── prompts.py                 # System prompt builder
-│   ├── tracking.py                # Episode tracking utilities
-│   ├── utils.py                   # Helper utilities
+kernel-eval-protocol-quickstart/
+├── core/
+│   ├── agent.py
+│   ├── agent_loop.py
+│   ├── browser.py
+│   ├── actions.py
+│   ├── prompts.py
+│   ├── tracking.py
+│   ├── utils.py
 │   └── reward_models/
-│       ├── base.py                # Base reward model
-│       └── webjudge.py            # WebJudge LLM-as-Judge scorer
-├── agent_auth/                    # Agent Auth benchmark
-│   ├── actions.py                 # FoundInputsAction for form discovery
-│   └── config.py                  # System prompt configuration
-├── kernel_browser_rollout_processor.py  # Eval Protocol rollout processor
-├── test_agent_auth.py             # Example evaluation test
-├── tasks.jsonl                    # Agent Auth task dataset
-├── requirements.txt               # Python dependencies
-├── pytest.ini                     # Pytest configuration
+│       ├── base.py
+│       └── webjudge.py
+├── agent_auth/
+│   ├── actions.py
+│   └── config.py
+├── kernel_browser_rollout_processor.py
+├── test_agent_auth.py
+├── tasks.jsonl
+├── requirements.txt
+├── pytest.ini
 └── README.md
 ```
 
-## Data Format
+## Related
 
-### Input Dataset (tasks.jsonl)
-
-```json
-{
-  "id": "gandi-net-register",
-  "initial_url": "https://gandi.net",
-  "task": "Navigate to gandi.net and find the register page..."
-}
-```
-
-### Message History (row.messages)
-
-The agent preserves full conversation history including native tool calls:
-
-```python
-[
-    {"role": "system", "content": "...system prompt..."},
-    {"role": "user", "content": [{"type": "image_url", ...}, {"type": "text", ...}]},
-    {"role": "assistant", "content": "...", "tool_calls": [{"id": "...", "function": {...}}]},
-    ...
-]
-```
-
-### Trajectory Data (row.execution_metadata.extra)
-
-```python
-{
-    # For evaluation (WebJudge)
-    "screenshots_b64": ["base64...", ...],  # PNG images as base64
-    "action_history": ["click(100, 200)", ...],
-    
-    # Task info
-    "task": "Navigate to...",
-    "task_id": "gandi-net-register",
-    "initial_url": "https://gandi.net",
-    "final_url": "https://gandi.net/register",
-    
-    # Episode metadata
-    "termination_reason": "terminal_action",
-    "terminal_action": "found_inputs(...)",
-    "steps_completed": 5,
-    "error": null,
-    
-    # Step details (for debugging)
-    "step_results": [...]
-}
-```
-
-## Modifications to Vendored Code
-
-The `core/` directory is vendored from [kernel-tinker-rl](https://github.com/onkernel/kernel-tinker-rl) with the following modifications:
-
-### 1. Message History Preservation (`core/agent.py`)
-
-The original `QwenAgent` only stored text responses, discarding native tool calls. We modified it to preserve the full conversation history:
-
-- Added `messages: list[dict]` to `AgentState`
-- In `predict()`, now stores:
-  - System message (on first call)
-  - User messages (with screenshots + instruction)
-  - Assistant responses **including `tool_calls`** when present
-- Added `get_messages()` method to retrieve the full history
-
-This enables accurate conversation replay in the Eval Protocol UI.
-
-### 2. WebJudge OpenAI API Compatibility (`core/reward_models/webjudge.py`)
-
-The original code used `max_tokens` and `temperature=0` which work with OpenRouter but not with direct OpenAI API calls (newer models like `gpt-5-mini`):
-
-- Changed `max_tokens` → `max_completion_tokens`
-- Removed `temperature=0` (newer OpenAI models only support `temperature=1`)
-
-These changes allow WebJudge to work with direct OpenAI API calls instead of requiring OpenRouter.
-
-## Related Projects
-
-- [kernel-tinker-rl](https://github.com/onkernel/kernel-tinker-rl) - VLM RL training for computer use (source of vendored core/)
-- [Eval Protocol](https://evalprotocol.com) - Pytest-based LLM evaluation framework
-- [Kernel](https://onkernel.com) - Browser-as-a-service
+- [Eval Protocol](https://evalprotocol.com) — Pytest-based LLM evaluation framework
+- [Fireworks](https://fireworks.ai) — VLM inference (e.g. Qwen3-VL)
+- [Kernel](https://onkernel.com) — Browser-as-a-service

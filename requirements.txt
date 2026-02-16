@@ -2,7 +2,7 @@
 eval-protocol>=0.3.11
 litellm
 
-# Dependencies for vendored core package (from kernel-tinker-rl)
+# Core agent and browser dependencies
 chz>=0.4.0
 cuid2>=2.0.1
 kernel>=0.23.0
@@ -13,7 +13,6 @@ python-dotenv>=1.2.1
 raindrop-ai>=0.0.34
 rich>=14.2.0
 wandb>=0.23.0
-websockets>=15.0.1
 
 # Dev dependencies (optional)
 # pytest>=7.0.0
