@@ -13,18 +13,12 @@ See: https://docs.onkernel.com/features/browser-pools
 
 from __future__ import annotations
 
-import asyncio
 import io
-import json
 import logging
-import random
-import ssl
-import threading
 import time
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Union, cast
 
-import websockets
 from PIL import Image
 from rich.console import Console
 
@@ -73,7 +67,6 @@ class KernelBrowserAdapter:
     - Coordinate conversion from normalized (0-999) to pixel space
     - Screenshot capture
     - Action execution via Kernel's computer control API
-    - Heartbeat for keeping browser alive during long VLM inference
     - Extensible custom action handlers
 
     Usage:
@@ -98,7 +91,6 @@ class KernelBrowserAdapter:
         browser: BrowserInfo,
         viewport_width: int = 1920,
         viewport_height: int = 1080,
-        heartbeat_interval: int = 10,
         reset_on_init: bool = True,
     ):
         """
@@ -110,8 +102,6 @@ class KernelBrowserAdapter:
                 kernel.browser_pools.acquire().
             viewport_width: Browser viewport width in pixels (default: 1920)
             viewport_height: Browser viewport height in pixels (default: 1080)
-            heartbeat_interval: Seconds between CDP heartbeats (default: 10).
-                Set to 0 to disable heartbeat capability.
             reset_on_init: If True, reset the browser to a clean state on init
                 (closes popups, navigates to about:blank). Default: True.
         """
@@ -121,9 +111,7 @@ class KernelBrowserAdapter:
         self.live_view_url: str | None = getattr(browser, "browser_live_view_url", None)
         self.viewport_width = viewport_width
         self.viewport_height = viewport_height
-        self.heartbeat_interval = heartbeat_interval
         self._custom_handlers: dict[str, ActionHandler] = {}
-        self._heartbeat: BrowserHeartbeat | None = None
         self._should_not_reuse: bool = False  # Set True if browser is in bad state
 
         if reset_on_init:
@@ -165,7 +153,7 @@ return { closedPages: pages.length - 1 };
         result = self.kernel.browsers.playwright.execute(
             id=self.session_id,
             code=cleanup_code,
-            timeout_sec=15,
+            timeout_sec=30,
         )
 
         if not result.success:
@@ -218,8 +206,8 @@ return { closedPages: pages.length - 1 };
         stability_threshold: float = 0.99,
         stability_count: int = 2,
         poll_interval: float = 0.3,
-        change_timeout: float = 5.0,
-        stability_timeout: float = 10.0,
+        change_timeout: float = 10.0,
+        stability_timeout: float = 15.0,
     ) -> Image.Image:
         """
         Wait for screen to change from baseline, then stabilize.
@@ -234,8 +222,8 @@ return { closedPages: pages.length - 1 };
             stability_threshold: Similarity above this = "stable" (default: 0.99)
             stability_count: Consecutive stable frames needed (default: 2)
             poll_interval: Seconds between captures (default: 0.3)
-            change_timeout: Max seconds to wait for change (default: 5.0)
-            stability_timeout: Max seconds to wait for stability (default: 10.0)
+            change_timeout: Max seconds to wait for change (default: 10.0)
+            stability_timeout: Max seconds to wait for stability (default: 15.0)
 
         Returns:
             The final stable screenshot
@@ -300,7 +288,9 @@ return { closedPages: pages.length - 1 };
 
         last_error = None
         for attempt in range(max_retries):
-            result = self.kernel.browsers.playwright.execute(id=self.session_id, code=code)
+            result = self.kernel.browsers.playwright.execute(
+                id=self.session_id, code=code, timeout_sec=30
+            )
 
             if result.success:
                 return self.wait_for_screen_settle(baseline=baseline)
@@ -422,199 +412,6 @@ return { closedPages: pages.length - 1 };
 
         return not getattr(action, "is_terminal", False)
 
-    def start_heartbeat_sync(self, task_label: str | None = None) -> None:
-        """
-        Start heartbeat in a dedicated background thread.
-
-        The heartbeat sends periodic CDP commands to prevent the browser
-        from timing out. This runs in its own thread with its own event loop,
-        completely independent of the main asyncio loop.
-
-        Args:
-            task_label: Optional label for console logging (e.g., "temu.com")
-
-        Requires cdp_ws_url to be available (from browser object or SDK).
-        """
-        if self.heartbeat_interval <= 0:
-            return
-        if not self.cdp_ws_url:
-            logger.debug(
-                f"Cannot start heartbeat for {self.session_id}: no cdp_ws_url"
-            )
-            return
-        if self._heartbeat is not None:
-            return  # Already running
-
-        self._heartbeat = BrowserHeartbeat(
-            self.session_id, self.cdp_ws_url, self.heartbeat_interval, task_label
-        )
-        self._heartbeat.start_sync()
-
-    def stop_heartbeat_sync(self) -> None:
-        """Stop the heartbeat thread synchronously (for use in finally blocks)."""
-        if self._heartbeat:
-            self._heartbeat.stop_sync()
-            self._heartbeat = None
-
-
-# =============================================================================
-# Browser Heartbeat (for long VLM inference)
-# =============================================================================
-
-
-class BrowserHeartbeat:
-    """Keeps a browser session alive via periodic CDP WebSocket commands.
-    
-    Uses a dedicated background THREAD (not asyncio) to avoid event loop contention.
-    The thread has its own event loop for websocket I/O, completely independent
-    of the main application's asyncio loop.
-    """
-
-    def __init__(
-        self,
-        session_id: str,
-        cdp_ws_url: str,
-        interval: int = 10,
-        task_label: str | None = None,
-    ):
-        self.session_id = session_id
-        self.cdp_ws_url = cdp_ws_url
-        self.interval = interval
-        self.task_label = task_label
-        self._thread: threading.Thread | None = None
-        self._stopped = threading.Event()
-        self._cmd_id = 0
-        self._ssl_ctx = ssl.create_default_context()
-        self._ssl_ctx.check_hostname = False
-        self._ssl_ctx.verify_mode = ssl.CERT_NONE
-
-    def start_sync(self) -> None:
-        """Start heartbeat in a dedicated background thread.
-        
-        This is non-blocking - returns immediately after spawning the thread.
-        The thread handles connection with retries and runs independently.
-        """
-        if self._thread is not None and self._thread.is_alive():
-            return
-        
-        self._stopped.clear()
-        self._thread = threading.Thread(
-            target=self._run_heartbeat_thread,
-            name=f"heartbeat-{self.session_id[:8]}",
-            daemon=True,  # Don't block process exit
-        )
-        self._thread.start()
-
-    def stop_sync(self) -> None:
-        """Stop the heartbeat thread."""
-        self._stopped.set()
-        if self._thread is not None:
-            # Give thread a moment to notice the stop flag
-            self._thread.join(timeout=2.0)
-            self._thread = None
-
-    def _run_heartbeat_thread(self) -> None:
-        """Main heartbeat thread function - runs its own asyncio event loop."""
-        # Create a new event loop for this thread
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        try:
-            loop.run_until_complete(self._heartbeat_thread_main())
-        except Exception as e:
-            logger.debug(f"Heartbeat thread error for {self.session_id}: {e}")
-        finally:
-            loop.close()
-
-    async def _heartbeat_thread_main(self) -> None:
-        """Async main for heartbeat thread - connect with retries, then heartbeat loop."""
-        ws = None
-        
-        # Stagger start time (0-3s) to spread out connection attempts
-        stagger = random.uniform(0, 3)
-        await asyncio.sleep(stagger)
-        
-        # Try to connect with retries
-        max_retries = 5
-        for attempt in range(max_retries):
-            if self._stopped.is_set():
-                return
-                
-            try:
-                ws = await asyncio.wait_for(
-                    websockets.connect(
-                        self.cdp_ws_url,
-                        ssl=self._ssl_ctx,
-                        ping_interval=None,
-                        ping_timeout=None,
-                    ),
-                    timeout=10,  # 10s timeout per attempt
-                )
-                
-                # Send initial heartbeat to verify connection
-                if await self._send_heartbeat(ws):
-                    break  # Success!
-                else:
-                    await ws.close()
-                    ws = None
-                    
-            except asyncio.TimeoutError:
-                pass
-            except Exception:
-                pass
-            
-            # Exponential backoff: 1s, 2s, 4s, 8s
-            if attempt < max_retries - 1:
-                backoff = min(2 ** attempt, 8)
-                await asyncio.sleep(backoff)
-        
-        if ws is None:
-            return
-        
-        # Run heartbeat loop
-        try:
-            while not self._stopped.is_set():
-                await asyncio.sleep(self.interval)
-                if self._stopped.is_set():
-                    break
-                    
-                result = await self._send_heartbeat(ws)
-                
-                # Console log for heartbeat (commented out - too noisy)
-                # if self.task_label:
-                #     if result:
-                #         console.print(
-                #             f"    {self._format_ts()} [dim]{self.task_label}: heartbeat=ok browser={self.session_id}[/]"
-                #         )
-                #     else:
-                #         console.print(
-                #             f"    {self._format_ts()} [red]{self.task_label}: heartbeat=failed browser={self.session_id}[/]"
-                #         )
-                
-                if not result:
-                    # Connection failed, try to reconnect
-                    break
-        finally:
-            try:
-                await ws.close()
-            except Exception:
-                pass
-
-    async def _send_heartbeat(self, ws) -> bool:
-        """Send a single heartbeat command and wait for response."""
-        try:
-            self._cmd_id += 1
-            await ws.send(json.dumps({"id": self._cmd_id, "method": "Browser.getVersion"}))
-            await asyncio.wait_for(ws.recv(), timeout=5)
-            return True
-        except Exception:
-            return False
-
-    def _format_ts(self) -> str:
-        """Return short timestamp [HH:MM:SS] for heartbeat log lines."""
-        from datetime import datetime
-        return datetime.now().strftime("[%H:%M:%S]")
-
 
 # =============================================================================
 # Browser Pool Context Manager
@@ -625,10 +422,9 @@ class BrowserHeartbeat:
 def acquired_browser(
     kernel: "Kernel",
     pool_name: str,
-    acquire_timeout_seconds: int = 60,
+    acquire_timeout_seconds: int = 120,
     viewport_width: int = 1920,
     viewport_height: int = 1080,
-    heartbeat_interval: int = 10,
     reset_on_init: bool = True,
 ) -> Iterator[KernelBrowserAdapter]:
     """
@@ -659,10 +455,9 @@ def acquired_browser(
     Args:
         kernel: Kernel SDK client instance
         pool_name: Name of the browser pool to use
-        acquire_timeout_seconds: Timeout for acquiring a browser (default: 60)
+        acquire_timeout_seconds: Timeout for acquiring a browser (default: 120)
         viewport_width: Browser viewport width (default: 1920)
         viewport_height: Browser viewport height (default: 1080)
-        heartbeat_interval: Seconds between CDP heartbeats (default: 10)
         reset_on_init: If True, reset browser to clean state on init (default: True)
 
     Yields:
@@ -678,20 +473,15 @@ def acquired_browser(
         browser,
         viewport_width=viewport_width,
         viewport_height=viewport_height,
-        heartbeat_interval=heartbeat_interval,
         reset_on_init=reset_on_init,
     )
 
     try:
         yield adapter
     except Exception:
-        # On error, stop heartbeat and release without reuse
-        adapter.stop_heartbeat_sync()
         kernel.browser_pools.release(pool_name, session_id=browser.session_id, reuse=False)
         raise
     else:
-        # On success, stop heartbeat and release with reuse (unless browser is in bad state)
-        adapter.stop_heartbeat_sync()
         reuse = not adapter._should_not_reuse
         kernel.browser_pools.release(pool_name, session_id=browser.session_id, reuse=reuse)
 
