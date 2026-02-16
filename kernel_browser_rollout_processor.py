@@ -106,11 +106,7 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
     def setup(self) -> None:
         """Initialize Kernel client."""
         self._kernel = Kernel()
-        logger.info(
-            f"Kernel client initialized, using pool: {self.pool_name}. "
-            "Ensure the pool is created with timeout_seconds >= 900 (e.g. kernel pools create %s --size 20 --timeout-seconds 900) so browsers stay alive during VLM inference.",
-            self.pool_name,
-        )
+        logger.info(f"Kernel client initialized, using pool: {self.pool_name}")
 
     def __call__(
         self,

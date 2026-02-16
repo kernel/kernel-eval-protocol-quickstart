@@ -89,8 +89,8 @@ Create a browser pool with a long inactivity timeout so browsers stay alive duri
 kernel pools create eval-browser-pool --size 20 --timeout 900
 ```
 
-- **timeout_seconds: 900** (15 minutes) — Browsers are only destroyed after this much idle time; normal API calls (screenshots, clicks) count as activity.
-- **size: 20** — Matches typical concurrency for evaluation runs.
+- **`--timeout 900`** (15 minutes) — Browsers are only destroyed after this much idle time; normal API calls (screenshots, clicks) count as activity.
+- **`--size 20`** — Matches typical concurrency for evaluation runs.
 
 ## Usage
 
