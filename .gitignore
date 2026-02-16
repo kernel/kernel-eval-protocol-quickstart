@@ -33,6 +33,3 @@ build/
 .DS_Store
 
 .ep_tmp/
-
-.env
-.env.example
