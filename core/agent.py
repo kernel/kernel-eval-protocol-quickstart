@@ -29,9 +29,7 @@ from .utils import resize_image
 
 # Available Qwen VLM models on Fireworks
 AVAILABLE_MODELS: list[str] = [
-    "accounts/fireworks/models/qwen3-vl-8b-instruct",
-    "accounts/fireworks/models/qwen3-vl-30b-a3b-instruct",
-    "accounts/fireworks/models/qwen3-vl-235b-a22b-instruct",
+    "accounts/fireworks/models/qwen3-vl-30b-a3b-thinking",
 ]
 
 DEFAULT_MODEL: str = AVAILABLE_MODELS[0]
