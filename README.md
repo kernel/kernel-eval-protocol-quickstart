@@ -1,6 +1,6 @@
 # Kernel Eval Protocol
 
-Eval Protocol integration for evaluating and fine-tuning VLM browser agents using [Kernel](https://onkernel.com) serverless browsers and [Fireworks](https://fireworks.ai) for VLM inference.
+[Eval Protocol](https://github.com/eval-protocol) (EP) is an open solution for doing reinforcement learning fine-tuning on existing agents — across any language, container, or framework. This quickstart uses it to evaluate and fine-tune VLM browser agents using [Kernel](https://onkernel.com) serverless browsers and [Fireworks](https://fireworks.ai) for VLM inference.
 
 ## Quickstart
 
@@ -33,28 +33,26 @@ Requires Python 3.10+.
    kernel pools create eval-browser-pool --size 20 --timeout 900
    ```
 
-4. **Run the evaluation**
+4. **Start the local monitoring server**
+
+   In a separate terminal, start the Eval Protocol UI so you can monitor runs in real-time:
+
+   ```bash
+   source .venv/bin/activate
+   .venv/bin/ep logs
+   ```
+
+   Keep this running -- when you kick off pytest in the next step, open `http://localhost:8000` to watch progress, view live results, and explore the pivot/table views that pytest prints to the console.
+
+5. **Run the evaluation**
 
    ```bash
    pytest test_agent_auth.py -vs
    ```
 
-   By default, the test runs 4 rows. Override with `EP_MAX_ROWS`:
+   By default, the test runs `4` rows. Override with `EP_MAX_ROWS`:
    - Fewer rows: `EP_MAX_ROWS=3 pytest test_agent_auth.py -vs`
    - More rows: `EP_MAX_ROWS=20 pytest test_agent_auth.py -vs`
-
-### View results in local UI
-
-Pytest prints links like `http://localhost:8000/pivot?...` and `http://localhost:8000/table?...`.
-Those links only work while the Eval Protocol local UI server is running.
-
-Start it in another terminal from the repo root:
-
-```bash
-.venv/bin/ep logs
-```
-
-Then open the links from pytest output.
 
 ## What Happens When You Run It
 
@@ -67,26 +65,26 @@ Eval Protocol reads `tasks.jsonl` (hundreds of browser tasks). For each task:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Eval Protocol                               │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  @evaluation_test(...)                                    │  │
-│  │  async def test_agent_auth(row):                         │  │
-│  │      trajectory = get_trajectory(row)                     │  │
-│  │      score = webjudge.evaluate(trajectory)               │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  @evaluation_test(...)                                   │   │
+│  │  async def test_agent_auth(row):                         │   │
+│  │      trajectory = get_trajectory(row)                    │   │
+│  │      score = webjudge.evaluate(trajectory)               │   │
+│  └──────────────────────────────────────────────────────────┘   │
 │                            │                                    │
 │                            ▼                                    │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  KernelBrowserRolloutProcessor                            │  │
-│  │    1. Acquire browser from Kernel pool                    │  │
-│  │    2. Navigate to initial URL                             │  │
-│  │    3. Run agent loop (screenshot → predict → execute)     │  │
-│  │    4. Capture trajectory, release browser                │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  KernelBrowserRolloutProcessor                           │   │
+│  │    1. Acquire browser from Kernel pool                   │   │
+│  │    2. Navigate to initial URL                            │   │
+│  │    3. Run agent loop (screenshot → predict → execute)    │   │
+│  │    4. Capture trajectory, release browser                │   │
+│  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
                              │
                              ▼
               ┌─────────────────────────────┐
-              │      Kernel Browser Pool     │
+              │      Kernel Browser Pool    │
               │  ┌─────┐ ┌─────┐ ┌─────┐    │
               │  │ 🌐  │ │ 🌐  │ │ 🌐  │    │
               │  └─────┘ └─────┘ └─────┘    │
@@ -183,6 +181,6 @@ kernel-eval-protocol-quickstart/
 
 ## Related
 
-- [Eval Protocol](https://evalprotocol.com) — Pytest-based LLM evaluation framework
+- [Eval Protocol](https://github.com/eval-protocol) — Pytest-based LLM evaluation framework
 - [Fireworks](https://fireworks.ai) — VLM inference (e.g. Qwen3-VL)
 - [Kernel](https://onkernel.com) — Browser-as-a-service
