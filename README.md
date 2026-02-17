@@ -1,6 +1,6 @@
 # Kernel Eval Protocol
 
-Eval Protocol integration for evaluating and fine-tuning VLM browser agents using [Kernel](https://onkernel.com) serverless browsers and [Fireworks](https://fireworks.ai) for VLM inference.
+[Eval Protocol](https://github.com/eval-protocol) (EP) is an open solution for doing reinforcement learning fine-tuning on existing agents — across any language, container, or framework. This quickstart uses it to evaluate and fine-tune VLM browser agents using [Kernel](https://onkernel.com) serverless browsers and [Fireworks](https://fireworks.ai) for VLM inference.
 
 ## Quickstart
 
@@ -181,6 +181,6 @@ kernel-eval-protocol-quickstart/
 
 ## Related
 
-- [Eval Protocol](https://evalprotocol.com) — Pytest-based LLM evaluation framework
+- [Eval Protocol](https://github.com/eval-protocol) — Pytest-based LLM evaluation framework
 - [Fireworks](https://fireworks.ai) — VLM inference (e.g. Qwen3-VL)
 - [Kernel](https://onkernel.com) — Browser-as-a-service
