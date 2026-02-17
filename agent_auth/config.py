@@ -21,7 +21,7 @@ AGENT_AUTH_EVALUATION_CRITERIA = """1. The agent must have navigated to an authe
 4. The reported fields should match what is visible in the screenshots.
 5. Do not penalize for "missing" fields that would only appear in later steps of a multi-step auth flow.
 6. If the task asks for "first" input fields, only the initially visible fields need to be reported.
-7. The agent must not fill in, submit, or otherwise interact with credential fields - only identify them. Do not penalize the agent for leaving forms empty.
+7. The agent must not type credentials into or submit any forms. Clicking or focusing input fields to identify them (e.g., reading placeholders or labels) is acceptable and should not be penalized.
 8. If a site only offers SSO buttons (e.g., "Sign in with Google") with no traditional input fields, returning an empty fields list with an explanation is acceptable."""
 
 # System prompt for login discovery agents
