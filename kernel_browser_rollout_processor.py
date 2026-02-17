@@ -29,7 +29,7 @@ from eval_protocol.pytest.types import RolloutProcessorConfig
 
 # From kernel-tinker-rl (vendored core package)
 from kernel import Kernel
-from core.agent import AgentConfig, QwenAgent
+from core.agent import AgentConfig, DEFAULT_MODEL, QwenAgent
 from core.agent_loop import run_agent_loop
 from core.browser import KernelBrowserAdapter
 
@@ -144,10 +144,7 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
 
         # Get model from completion_params
         completion_params = config.completion_params or {}
-        model = completion_params.get("model", "qwen/qwen3-vl-8b-instruct")
-        # Strip fireworks_ai/ prefix if present
-        if model.startswith("fireworks_ai/"):
-            model = model[len("fireworks_ai/"):]
+        model = completion_params.get("model", DEFAULT_MODEL)
         temperature = completion_params.get("temperature", 0.0)
         max_tokens = completion_params.get("max_tokens", 512)
 

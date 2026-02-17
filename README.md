@@ -4,10 +4,12 @@ Eval Protocol integration for evaluating and fine-tuning VLM browser agents usin
 
 ## Quickstart
 
+Requires Python 3.10+.
+
 1. **Clone and install**
 
    ```bash
-   git clone <this-repo> kernel-eval-protocol-quickstart
+   git clone https://github.com/kernel/kernel-eval-protocol-quickstart.git
    cd kernel-eval-protocol-quickstart
    python -m venv .venv
    source .venv/bin/activate
@@ -37,14 +39,29 @@ Eval Protocol integration for evaluating and fine-tuning VLM browser agents usin
    pytest test_agent_auth.py -vs
    ```
 
-   To run on fewer tasks (e.g. 5 rows): `EP_MAX_ROWS=5 pytest test_agent_auth.py -vs`
+   By default, the test runs 4 rows. Override with `EP_MAX_ROWS`:
+   - Fewer rows: `EP_MAX_ROWS=3 pytest test_agent_auth.py -vs`
+   - More rows: `EP_MAX_ROWS=20 pytest test_agent_auth.py -vs`
+
+### View results in local UI
+
+Pytest prints links like `http://localhost:8000/pivot?...` and `http://localhost:8000/table?...`.
+Those links only work while the Eval Protocol local UI server is running.
+
+Start it in another terminal from the repo root:
+
+```bash
+.venv/bin/ep logs
+```
+
+Then open the links from pytest output.
 
 ## What Happens When You Run It
 
 Eval Protocol reads `tasks.jsonl` (hundreds of browser tasks). For each task:
 
 - **KernelBrowserRolloutProcessor** acquires a browser from the pool, navigates to the task URL, runs the VLM agent loop (screenshot → predict → execute → repeat), captures the trajectory, then releases the browser.
-- The test function scores each trajectory with **WebJudge** (LLM-as-judge).
+- The test function scores each trajectory with **WebJudge** (LLM-as-judge), using the Agent Auth-specific rubric in `agent_auth/config.py` (`AGENT_AUTH_EVALUATION_CRITERIA`).
 - Results are reported by pytest / Eval Protocol.
 
 ```
@@ -79,6 +96,13 @@ Eval Protocol reads `tasks.jsonl` (hundreds of browser tasks). For each task:
 ## Training with RFT
 
 RFT produces a smaller model trained specifically on the browser-agent actions that work for your tasks, so you can run cheaper inference without losing task performance. Create a reinforcement fine-tuning job from evaluation results:
+
+### Evaluation → RFT lifecycle
+
+1. Run `pytest test_agent_auth.py -vs` to generate Eval Protocol results from your task dataset.
+2. Eval scoring uses `AGENT_AUTH_EVALUATION_CRITERIA` (via WebJudge) to produce the success/failure signal.
+3. Run `ep create rft ...` to build the training dataset from those evaluation results and start an RFT job.
+4. After training completes, evaluate the new model again with the same `test_agent_auth.py` flow.
 
 ```bash
 ep create rft --base-model accounts/fireworks/models/qwen3-vl-8b-instruct --chunk-size 50 --max-context-length 32768 --batch-size 32768 --epochs 4

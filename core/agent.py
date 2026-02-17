@@ -2,7 +2,7 @@
 Qwen3-VL Computer Use Agent.
 
 A VLM-based agent for computer use tasks, inspired by OSWorld's agent architecture.
-Uses OpenRouter for model access and Qwen3-VL's native tool call format.
+Uses OpenAI-compatible APIs and Qwen3-VL's native tool call format.
 
 References:
     https://github.com/xlang-ai/OSWorld
@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
 from dataclasses import dataclass, field
 
 from typing import cast
@@ -26,24 +27,12 @@ from .actions import Action, parse_action_from_args, parse_action_from_response
 from .prompts import get_system_prompt
 from .utils import resize_image
 
-# Available Qwen VLM models on OpenRouter
+# Available Qwen VLM models on Fireworks
 AVAILABLE_MODELS: list[str] = [
-    "qwen/qwen3-vl-8b-instruct",
-    "qwen/qwen3-vl-30b-a3b-instruct",
-    "qwen/qwen3-vl-235b-a22b-instruct",
+    "accounts/fireworks/models/qwen3-vl-30b-a3b-thinking",
 ]
 
 DEFAULT_MODEL: str = AVAILABLE_MODELS[0]
-
-# Tinker OpenAI-compatible inference endpoint
-# See: https://tinker-docs.thinkingmachines.ai/compatible-apis/openai
-TINKER_OPENAI_BASE_URL: str = "https://tinker.thinkingmachines.dev/services/tinker-prod/oai/api/v1"
-
-
-def is_tinker_checkpoint(model: str) -> bool:
-    """Check if the model path is a Tinker checkpoint (sampler_path)."""
-    return model.startswith("tinker://")
-
 
 def encode_image(image: Image.Image) -> str:
     """Convert a PIL image to base64 JPEG string."""
@@ -60,7 +49,7 @@ class AgentConfig:
 
     model: str = DEFAULT_MODEL
     api_key: str | None = None
-    base_url: str = "https://openrouter.ai/api/v1"
+    base_url: str = "https://api.fireworks.ai/inference/v1"
     history_n: int = 4  # Number of history steps to include in context
     max_tokens: int = 2048
     temperature: float = 0.0
@@ -87,7 +76,7 @@ class QwenAgent:
     Uses normalized coordinates (0-999) for coordinate-independent actions.
 
     Usage:
-        agent = QwenAgent(AgentConfig(model="qwen/qwen3-vl-8b-instruct"))
+        agent = QwenAgent(AgentConfig(model="accounts/fireworks/models/qwen3-vl-8b-instruct"))
 
         while True:
             action = agent.predict(task, screenshot)
@@ -108,22 +97,17 @@ class QwenAgent:
         self._system_prompt = self.config.system_prompt or get_system_prompt()
         self._extra_actions = self.config.extra_actions or None
 
-        # Initialize OpenAI client
-        # Use Tinker's OpenAI-compatible endpoint for checkpoint models,
-        # otherwise use OpenRouter (or custom base_url if provided)
-        import os
-
-        if is_tinker_checkpoint(self.config.model):
-            # Tinker checkpoint: use Tinker's OpenAI-compatible API
-            base_url = TINKER_OPENAI_BASE_URL
-            api_key = self.config.api_key or os.getenv("TINKER_API_KEY")
-        else:
-            # Regular model: use OpenRouter or custom base_url
-            base_url = self.config.base_url
-            api_key = self.config.api_key or os.getenv("OPENROUTER_API_KEY")
+        # Initialize OpenAI-compatible client.
+        base_url = self.config.base_url
+        api_key = self.config.api_key or os.getenv("FIREWORKS_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "No API key provided. Set FIREWORKS_API_KEY in your environment "
+                "or pass api_key in AgentConfig."
+            )
 
         self.client = OpenAI(
-            api_key=api_key or "dummy",  # Some endpoints don't require auth
+            api_key=api_key,
             base_url=base_url,
         )
 
@@ -201,8 +185,7 @@ class QwenAgent:
         # First try parsing from text content (traditional <tool_call> format)
         action = parse_action_from_response(response_text, self._extra_actions)
 
-        # If no action found in text, check for native OpenAI-style tool_calls
-        # (OpenRouter converts <tool_call> tags to native format for some models)
+        # If no action found in text, check for native OpenAI-style tool_calls.
         tool_calls_data = None
         if action is None and msg.tool_calls:
             tool_calls_data = []

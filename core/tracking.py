@@ -20,7 +20,7 @@ Usage:
 
     # Create callbacks for step-level tracking
     on_step_start, on_step_complete, on_action_overlay, _ = create_step_callbacks(
-        model="qwen/qwen3-vl-8b-instruct",
+        model="accounts/fireworks/models/qwen3-vl-8b-instruct",
         convo_id=convo_id,
     )
 

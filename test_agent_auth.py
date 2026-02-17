@@ -14,6 +14,7 @@ Usage:
 
 Environment Variables:
     KERNEL_API_KEY: Required for Kernel browser API
+    FIREWORKS_API_KEY: Required for VLM rollout inference
     OPENAI_API_KEY: Required for WebJudge (LLM judge)
 """
 
@@ -33,13 +34,17 @@ from kernel_browser_rollout_processor import (
 
 from core.reward_models.webjudge import Trajectory, WebJudge
 from agent_auth.actions import AGENT_AUTH_ACTIONS
-from agent_auth.config import get_agent_auth_system_prompt
+from agent_auth.config import (
+    AGENT_AUTH_EVALUATION_CRITERIA,
+    get_agent_auth_system_prompt,
+)
 
 # Load environment variables
 load_dotenv()
 
 # WebJudge singleton
 _webjudge: WebJudge | None = None
+MAX_DATASET_ROWS = int(os.getenv("EP_MAX_ROWS", "4"))
 
 
 def get_webjudge(model: str = "gpt-5-mini") -> WebJudge:
@@ -50,6 +55,7 @@ def get_webjudge(model: str = "gpt-5-mini") -> WebJudge:
             model=model,
             api_key=os.environ.get("OPENAI_API_KEY"),
             base_url="https://api.openai.com/v1",
+            evaluation_criteria=AGENT_AUTH_EVALUATION_CRITERIA,
         )
     return _webjudge
 
@@ -97,7 +103,7 @@ def agent_auth_dataset_adapter(rows: List[Dict[str, Any]]) -> List[EvaluationRow
         extra_actions=AGENT_AUTH_ACTIONS,
     ),
     passed_threshold=0.5,
-    max_dataset_rows=4,
+    max_dataset_rows=MAX_DATASET_ROWS,
     num_runs=1,
     max_concurrent_rollouts=16,
     max_concurrent_evaluations=16,
