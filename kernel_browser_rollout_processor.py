@@ -147,9 +147,6 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
         model = completion_params.get(
             "model", "accounts/fireworks/models/qwen3-vl-8b-instruct"
         )
-        # Strip fireworks_ai/ prefix if present
-        if model.startswith("fireworks_ai/"):
-            model = model[len("fireworks_ai/"):]
         temperature = completion_params.get("temperature", 0.0)
         max_tokens = completion_params.get("max_tokens", 512)
 
