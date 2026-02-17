@@ -184,7 +184,6 @@ class WebJudge(RewardModel):
 2. Identify and extract **key points** directly stated in the task description.
    - A **key point** is a critical element, condition, or step explicitly mentioned in the task description.
    - Do not infer or add any unstated elements.
-   - Words such as "best," "highest," "cheapest," "latest," "most recent," "lowest," "closest," "highest-rated," "largest," and "newest" must go through the sort function(e.g., the key point should be "Filter by highest").
 
 **Respond with**:
 - **Key Points**: A numbered list of the explicit key points for completing this task, one per line, without explanations or additional details."""
