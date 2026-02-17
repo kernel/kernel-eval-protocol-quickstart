@@ -102,9 +102,14 @@ class QwenAgent:
         # Initialize OpenAI-compatible client.
         base_url = self.config.base_url
         api_key = self.config.api_key or os.getenv("FIREWORKS_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "No API key provided. Set FIREWORKS_API_KEY in your environment "
+                "or pass api_key in AgentConfig."
+            )
 
         self.client = OpenAI(
-            api_key=api_key or "dummy",  # Some endpoints don't require auth
+            api_key=api_key,
             base_url=base_url,
         )
 
