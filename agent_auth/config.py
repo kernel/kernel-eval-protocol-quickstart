@@ -29,7 +29,7 @@ LOGIN_DISCOVERY_PROMPT = """Your task is to find the login page for a website an
 Instructions:
 1. Navigate the website to find the login/sign-in page
 2. Once you find a login form, identify all input fields (username, email, password, etc.)
-3. Use the request_inputs action to report the required fields (this completes the task)
+3. Use the found_inputs action to report the required fields (this completes the task)
 
 Do not click on or interact with cookie consent buttons unless they are blocking your task.
 Do not attempt to fill in any credentials - just identify what fields exist."""
@@ -40,7 +40,7 @@ def get_agent_auth_system_prompt() -> str:
     return build_system_prompt(
         base_prompt=LOGIN_DISCOVERY_PROMPT,
         extra_actions=AGENT_AUTH_ACTIONS,
-        exclude_actions={"terminate"},  # Use request_inputs instead
+        exclude_actions={"terminate"},
     )
 
 
