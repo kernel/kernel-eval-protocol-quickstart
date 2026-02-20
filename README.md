@@ -56,10 +56,10 @@ Requires Python 3.10+.
 
 ## What Happens When You Run It
 
-Eval Protocol reads `tasks.jsonl` (hundreds of browser tasks). For each task:
+The included dataset (`tasks.jsonl`) contains 469 **Agent Auth** tasks. Each Agent Auth task asks the agent to navigate to a website, find its login or registration page, and identify the required input fields -- without typing credentials or submitting any forms. For each task:
 
 - **KernelBrowserRolloutProcessor** acquires a browser from the pool, navigates to the task URL, runs the VLM agent loop (screenshot → predict → execute → repeat), captures the trajectory, then releases the browser.
-- The test function scores each trajectory with **WebJudge** (LLM-as-judge), using the Agent Auth-specific rubric in `agent_auth/config.py` (`AGENT_AUTH_EVALUATION_CRITERIA`).
+- The test function scores each trajectory with **WebJudge** (LLM-as-judge) against the evaluation rubric in `agent_auth/config.py`.
 - Results are reported by pytest / Eval Protocol.
 
 ```
