@@ -27,10 +27,10 @@ Requires Python 3.10+.
 
 3. **Create a browser pool**
 
-   Browsers must stay alive during VLM inference, so use a long inactivity timeout. The default concurrency uses up to 16 rollouts, so a pool of 20 is a good fit.
+   Browsers must stay alive during VLM inference, so use a long inactivity timeout. The default concurrency uses up to 16 rollouts, so a pool of 50 is a good fit.
 
    ```bash
-   kernel pools create eval-browser-pool --size 20 --timeout 1800 --stealth --fill-rate 25
+   kernel pools create eval-browser-pool --size 50 --timeout 1800 --stealth --fill-rate 25
    ```
 
 4. **Start the local monitoring server**
