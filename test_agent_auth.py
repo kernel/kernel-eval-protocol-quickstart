@@ -8,7 +8,7 @@ Evaluates VLM agents on login/register form discovery tasks using:
 Usage:
     pytest test_agent_auth.py -vs
     pytest test_agent_auth.py -vs --ep-max-rows=20
-    pytest test_agent_auth.py -vs --ep-max-rows=20 --ep-max-concurrent-rollouts=5
+    pytest test_agent_auth.py -vs --ep-max-rows=20 --ep-max-concurrent-rollouts=5 --ep-max-concurrent-evaluations=5
 
 Environment Variables:
     KERNEL_API_KEY: Required for Kernel browser API
