@@ -6,11 +6,9 @@ Evaluates VLM agents on login/register form discovery tasks using:
 - WebJudge for trajectory scoring
 
 Usage:
-    # Run the evaluation
     pytest test_agent_auth.py -vs
-
-    # With custom settings via environment
-    EP_MAX_ROWS=5 pytest test_agent_auth.py -vs
+    pytest test_agent_auth.py -vs --ep-max-rows=20
+    pytest test_agent_auth.py -vs --ep-max-rows=20 --ep-max-concurrent-rollouts=5
 
 Environment Variables:
     KERNEL_API_KEY: Required for Kernel browser API
@@ -44,7 +42,7 @@ load_dotenv()
 
 # WebJudge singleton
 _webjudge: WebJudge | None = None
-MAX_DATASET_ROWS = int(os.getenv("EP_MAX_ROWS", "4"))
+MAX_DATASET_ROWS = 4
 
 
 def get_webjudge(model: str = "gpt-5-mini") -> WebJudge:

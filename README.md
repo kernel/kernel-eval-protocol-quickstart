@@ -50,9 +50,9 @@ Requires Python 3.10+.
    pytest test_agent_auth.py -vs
    ```
 
-   By default, the test runs `4` rows. Override with `EP_MAX_ROWS`:
-   - Fewer rows: `EP_MAX_ROWS=3 pytest test_agent_auth.py -vs`
-   - More rows: `EP_MAX_ROWS=20 pytest test_agent_auth.py -vs`
+   By default, the test runs 4 rows with up to 16 concurrent rollouts. Override via pytest flags:
+   - More rows: `pytest test_agent_auth.py -vs --ep-max-rows=20`
+   - Limit concurrent browser rollouts (e.g. groups of 5): `pytest test_agent_auth.py -vs --ep-max-rows=20 --ep-max-concurrent-rollouts=5`
 
 ## What Happens When You Run It
 
