@@ -50,7 +50,7 @@ Requires Python 3.10+.
    pytest test_agent_auth.py -vs
    ```
 
-   By default, the test runs 4 rollouts. At most 16 rollouts and 16 evaluations run in parallel; use the flags below to change the row count or concurrency:
+   By default, the test runs 4 rollouts. At most 16 rollouts and 16 evaluations run in parallel by default; use the flags below to change the row count or concurrency:
    - More rows: `pytest test_agent_auth.py -vs --ep-max-rows=20`
    - Limit concurrent browser rollouts (e.g. groups of 5): `--ep-max-concurrent-rollouts=5`
    - Limit concurrent WebJudge evaluations: `--ep-max-concurrent-evaluations=5`
