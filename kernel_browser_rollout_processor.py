@@ -145,6 +145,12 @@ class KernelBrowserRolloutProcessor(RolloutProcessor):
         # Get model from completion_params
         completion_params = config.completion_params or {}
         model = completion_params.get("model", DEFAULT_MODEL)
+        # Strip the fireworks_ai/ prefix that the eval protocol adds for LiteLLM
+        # routing — the direct OpenAI client expects raw Fireworks model names
+        # like "accounts/fireworks/models/..." not "fireworks_ai/accounts/...".
+        if isinstance(model, str) and model.startswith("fireworks_ai/"):
+            model = model[len("fireworks_ai/"):]
+
         temperature = completion_params.get("temperature", 0.0)
         max_tokens = completion_params.get("max_tokens", 512)
 
