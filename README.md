@@ -107,6 +107,19 @@ RFT produces a smaller model trained specifically on the browser-agent actions t
 ep create rft --base-model accounts/fireworks/models/qwen3-vl-8b-instruct --chunk-size 50 --max-context-length 32768 --batch-size 32768 --epochs 4
 ```
 
+### Uploading the evaluator
+
+When you change your evaluation code (e.g. `test_agent_auth.py`, prompts, or WebJudge config), upload the updated evaluator so Fireworks uses it for RFT jobs and remote runs:
+
+```bash
+ep upload --force -y
+```
+
+- `--force` overwrites the existing evaluator with the same ID.
+- `-y` runs non-interactively (no prompts).
+
+Local pytest always uses your local code; only Fireworks (e.g. RFT job validation) uses the uploaded version.
+
 ### Using the RFT model
 
 After the RFT job completes, you get a new model ID (e.g. from Fireworks). To evaluate that model instead of the default, set it in `test_agent_auth.py` in the `@evaluation_test` decorator:
