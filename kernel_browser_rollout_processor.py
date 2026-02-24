@@ -8,7 +8,7 @@ Usage:
     from kernel_browser_rollout_processor import KernelBrowserRolloutProcessor
     
     @evaluation_test(
-        rollout_processor=KernelBrowserRolloutProcessor(pool_name="eval-pool"),
+        rollout_processor=KernelBrowserRolloutProcessor(pool_name="eval-browser-pool"),
         ...
     )
     def test_my_eval(row: EvaluationRow) -> EvaluationRow:
