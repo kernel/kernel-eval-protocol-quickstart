@@ -1,6 +1,11 @@
 # Kernel Eval Protocol
-
 [Eval Protocol](https://github.com/eval-protocol) (EP) is an open solution for doing reinforcement learning fine-tuning on existing agents — across any language, container, or framework. This quickstart uses it to evaluate and fine-tune VLM browser agents using [Kernel](https://onkernel.com) serverless browsers and [Fireworks](https://fireworks.ai) for VLM inference.
+
+<figure>
+   <img width="1520" height="1192" alt="image (5)" src="https://github.com/user-attachments/assets/9507cbe6-0f77-4060-9039-072c91bee0db" />
+   <figcaption>This graph depicts the reinforcement fine-tuned model's performance over time. Performance = successful number tasks / total number tasks in the training set.
+</figcaption>
+</figure>
 
 ## Quickstart
 
