@@ -1,6 +1,6 @@
 # Evaluation framework
 eval-protocol>=0.3.11
-litellm
+litellm<=1.82.6
 
 # Core agent and browser dependencies
 chz>=0.4.0
